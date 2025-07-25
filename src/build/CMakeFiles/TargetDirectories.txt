@@ -1,0 +1,4 @@
+/home/mrmc/Desktop/gamehub/image-reterieval/src/build/CMakeFiles/template_generator.dir
+/home/mrmc/Desktop/gamehub/image-reterieval/src/build/CMakeFiles/recognize.dir
+/home/mrmc/Desktop/gamehub/image-reterieval/src/build/CMakeFiles/edit_cache.dir
+/home/mrmc/Desktop/gamehub/image-reterieval/src/build/CMakeFiles/rebuild_cache.dir
