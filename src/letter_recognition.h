@@ -19,13 +19,23 @@ struct Template {
     std::vector<uint8_t> bits;
 };
 
+struct RecognitionResult {
+    char letter;
+    int rotation;
+    int confidence;  // Lower is better (hamming distance)
+    
+    RecognitionResult() : letter('?'), rotation(0), confidence(INT_MAX) {}
+    RecognitionResult(char l, int r, int c) : letter(l), rotation(r), confidence(c) {}
+};
+
 extern std::vector<Template> templates;
 extern int SAFE_THRESHOLD;
 
 // Core functions
 void load_templates(const std::string& path);
 void load_templates_binary(const std::string& path);
-char recognize_letter(const cv::Mat& image);
+char recognize_letter(const cv::Mat& image);  // Legacy function
+RecognitionResult recognize_letter_with_rotation(const cv::Mat& image);  // New function with rotation
 void calibrate_threshold(const std::string& validation_dir);
 
 // Image processing functions

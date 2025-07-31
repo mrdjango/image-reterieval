@@ -53,15 +53,16 @@ int main() {
         cv::Mat img = cv::imread(entry.path().string());
         if (img.empty()) continue;
         
-        // Resize to standard size (32x32)
+        // Resize to standard size (64x64)
         cv::Mat resized;
-        cv::resize(img, resized, cv::Size(32, 32));
+        cv::resize(img, resized, cv::Size(64, 64));
         
         // Process image
         cv::Mat binary;
         adaptive_binarize(resized, binary);
         
         // Generate 9 shifted versions (±1 pixel tolerance)
+        /*
         for (int dx : {-1, 0, 1}) {
             for (int dy : {-1, 0, 1}) {
                 Template t;
@@ -74,9 +75,23 @@ int main() {
                 // Save to file
                 out.write(&t.letter, 1);
                 out.write(reinterpret_cast<char*>(&t.rotation), sizeof(int));
-                out.write(reinterpret_cast<char*>(t.bits.data()), 128);
+                out.write(reinterpret_cast<char*>(t.bits.data()), 512);  // 512 bytes for 64x64
             }
         }
+        */
+        
+        // Generate single unshifted version
+        Template t;
+        t.letter = letter;
+        t.rotation = rotation;
+        
+        // Pack without shifting
+        center_and_pack(binary, t.bits);
+        
+        // Save to file
+        out.write(&t.letter, 1);
+        out.write(reinterpret_cast<char*>(&t.rotation), sizeof(int));
+        out.write(reinterpret_cast<char*>(t.bits.data()), 512);  // 512 bytes for 64x64
     }
     return 0;
 }

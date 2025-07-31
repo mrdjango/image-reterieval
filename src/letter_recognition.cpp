@@ -15,15 +15,15 @@
 #endif
 
 std::vector<Template> templates;
-int SAFE_THRESHOLD = 70;  // Increased from 15 to be less restrictive
+int SAFE_THRESHOLD = 200;  // Adjusted for 64x64 templates (512 bytes vs 8192 bytes)
 
 // Removed gpu_warp function as coordinates are no longer needed
 
 uint16_t hamming_distance(const uint8_t* a, const uint8_t* b) {
     #if defined(__arm__) || defined(__aarch64__)
-    // ARM NEON implementation
+    // ARM NEON implementation for 512 bytes
     uint8x16_t sum = vdupq_n_u8(0);
-    for(int i=0; i<128; i+=16) {
+    for(int i=0; i<512; i+=16) {
         uint8x16_t va = vld1q_u8(a + i);
         uint8x16_t vb = vld1q_u8(b + i);
         uint8x16_t vc = veorq_u8(va, vb);
@@ -31,9 +31,9 @@ uint16_t hamming_distance(const uint8_t* a, const uint8_t* b) {
     }
     return vaddlvq_u8(sum);
     #elif defined(__x86_64__) && defined(__SSE4_2__)
-    // x86_64 SSE implementation (only if SSE4.2 is available)
+    // x86_64 SSE implementation (only if SSE4.2 is available) for 512 bytes
     __m128i sum = _mm_setzero_si128();
-    for(int i=0; i<128; i+=16) {
+    for(int i=0; i<512; i+=16) {
         __m128i va = _mm_loadu_si128((__m128i*)(a + i));
         __m128i vb = _mm_loadu_si128((__m128i*)(b + i));
         __m128i vc = _mm_xor_si128(va, vb);
@@ -54,9 +54,9 @@ uint16_t hamming_distance(const uint8_t* a, const uint8_t* b) {
     }
     return result;
     #else
-    // Fallback implementation (works on all platforms)
+    // Fallback implementation (works on all platforms) for 512 bytes
     uint16_t result = 0;
-    for(int i=0; i<128; i++) {
+    for(int i=0; i<512; i++) {
         uint8_t diff = a[i] ^ b[i];
         result += __builtin_popcount(diff);
     }
@@ -68,17 +68,17 @@ void adaptive_binarize(const cv::Mat& src, cv::Mat& dst) {
     cv::Mat gray;
     cv::cvtColor(src, gray, cv::COLOR_BGR2GRAY);
     
-    // Optimized mean calculation
+    // Optimized mean calculation for 64x64 (4096 pixels)
     uint32_t sum = 0;
     const uint8_t* p = gray.data;
-    for(int i=0; i<1024; i++) sum += p[i];
-    uint8_t threshold = sum >> 10;  // Divide by 1024
+    for(int i=0; i<4096; i++) sum += p[i];
+    uint8_t threshold = sum >> 12;  // Divide by 4096
     
-    dst.create(32, 32, CV_8U);
+    dst.create(64, 64, CV_8U);
     
     // Count pixels above and below threshold to determine letter polarity
     int above_threshold = 0, below_threshold = 0;
-    for(int i=0; i<1024; i++) {
+    for(int i=0; i<4096; i++) {
         if(p[i] > threshold) above_threshold++;
         else below_threshold++;
     }
@@ -87,33 +87,33 @@ void adaptive_binarize(const cv::Mat& src, cv::Mat& dst) {
     // If more pixels are light, assume light letters on dark background
     bool dark_letters = (below_threshold > above_threshold);
     
-    for(int i=0; i<1024; i++) {
+    for(int i=0; i<4096; i++) {
         bool is_letter_pixel = dark_letters ? (p[i] <= threshold) : (p[i] > threshold);
         dst.data[i] = is_letter_pixel ? 255 : 0;
     }
 }
 
 void center_and_pack(const cv::Mat& bin, std::vector<uint8_t>& packed) {
-    // Centroid calculation
+    // Centroid calculation for 64x64
     int cx = 0, cy = 0, count = 0;
-    for(int y=0; y<32; y++) {
-        for(int x=0; x<32; x++) {
+    for(int y=0; y<64; y++) {
+        for(int x=0; x<64; x++) {
             if(bin.at<uint8_t>(y,x)) {
                 cx += x; cy += y; count++;
             }
         }
     }
-    cx = (count > 0) ? cx / count : 16;
-    cy = (count > 0) ? cy / count : 16;
+    cx = (count > 0) ? cx / count : 32;
+    cy = (count > 0) ? cy / count : 32;
     
-    // Pack into 128 bytes (1024 bits)
-    packed.resize(128, 0);
-    for(int y=0; y<32; y++) {
-        for(int x=0; x<32; x++) {
-            int dx = x - cx + 16;
-            int dy = y - cy + 16;
-            if(dx >= 0 && dx < 32 && dy >= 0 && dy < 32) {
-                int bit_pos = dy * 32 + dx;
+    // Pack into 512 bytes (4096 bits = 64x64)
+    packed.resize(512, 0);
+    for(int y=0; y<64; y++) {
+        for(int x=0; x<64; x++) {
+            int dx = x - cx + 32;
+            int dy = y - cy + 32;
+            if(dx >= 0 && dx < 64 && dy >= 0 && dy < 64) {
+                int bit_pos = dy * 64 + dx;
                 int byte_pos = bit_pos / 8;
                 int bit_offset = bit_pos % 8;
                 if(bin.at<uint8_t>(y,x)) {
@@ -168,13 +168,13 @@ void load_templates(const std::string& path) {
         
         // Parse binary string
         std::string bits_str = line.substr(comma_pos + 1);
-        if (bits_str.length() < 128) {
+        if (bits_str.length() < 512) {
             std::cerr << "Warning: Binary string too short in line " << line_number << ": " << line << std::endl;
             continue;
         }
         
-        t.bits.resize(128);
-        for(int i=0; i<128; i++) {
+        t.bits.resize(512);
+        for(int i=0; i<512; i++) {
             t.bits[i] = (bits_str[i] == '1') ? 0xFF : 0x00;
         }
         
@@ -200,9 +200,9 @@ void load_templates_binary(const std::string& path) {
         // Read rotation (4 bytes)
         if (!file.read(reinterpret_cast<char*>(&t.rotation), sizeof(int))) break;
         
-        // Read bits (128 bytes)
-        t.bits.resize(128);
-        if (!file.read(reinterpret_cast<char*>(t.bits.data()), 128)) break;
+        // Read bits (512 bytes for 64x64)
+        t.bits.resize(512);
+        if (!file.read(reinterpret_cast<char*>(t.bits.data()), 512)) break;
         
         templates.push_back(t);
     }
@@ -214,9 +214,9 @@ char recognize_letter(const cv::Mat& image) {
     // Debug: Print input image info
     std::cout << "Input image: " << image.cols << "x" << image.rows << " channels: " << image.channels() << std::endl;
     
-    // Resize image to 32x32 (same as templates)
+    // Resize image to 64x64 (same as templates)
     cv::Mat resized;
-    cv::resize(image, resized, cv::Size(32, 32));
+    cv::resize(image, resized, cv::Size(64, 64));
     
     // Debug: Save resized image
     debug_save_image(resized, "debug_resized.jpg");
@@ -279,10 +279,88 @@ char recognize_letter(const cv::Mat& image) {
     return (min_distance <= SAFE_THRESHOLD) ? best_match : '?';
 }
 
+RecognitionResult recognize_letter_with_rotation(const cv::Mat& image) {
+    // Debug: Print input image info
+    std::cout << "Input image: " << image.cols << "x" << image.rows << " channels: " << image.channels() << std::endl;
+    
+    // Resize image to 64x64 (same as templates)
+    cv::Mat resized;
+    cv::resize(image, resized, cv::Size(64, 64));
+    
+    // Debug: Save resized image
+    debug_save_image(resized, "debug_resized.jpg");
+    
+    cv::Mat binary;
+    adaptive_binarize(resized, binary);
+    
+    // Debug: Save binary image
+    debug_save_image(binary, "debug_binary.jpg");
+    
+    std::vector<uint8_t> packed;
+    center_and_pack(binary, packed);
+    
+    // Debug: Check packed data
+    std::cout << "Packed data size: " << packed.size() << " bytes" << std::endl;
+    int non_zero_bytes = 0;
+    for (int i = 0; i < packed.size(); i++) {
+        if (packed[i] != 0) non_zero_bytes++;
+    }
+    std::cout << "Non-zero bytes in packed data: " << non_zero_bytes << std::endl;
+    
+    RecognitionResult best_result;
+    
+    // Debug: Check if templates are loaded
+    if (templates.empty()) {
+        std::cerr << "Warning: No templates loaded!" << std::endl;
+        return best_result;
+    }
+    
+    // Debug: Print template stats
+    debug_print_template_stats();
+    
+    // Find the best matching template (including rotation)
+    for(const auto& t : templates) {
+        int distance = hamming_distance(packed.data(), t.bits.data());
+        if(distance < best_result.confidence) {
+            best_result.letter = t.letter;
+            best_result.rotation = t.rotation;
+            best_result.confidence = distance;
+        }
+    }
+    
+    // Debug: Print distance information
+    std::cout << "Min distance: " << best_result.confidence << " (threshold: " << SAFE_THRESHOLD << ")" << std::endl;
+    std::cout << "Best match: " << best_result.letter << " (rotation: " << best_result.rotation << "°)" << std::endl;
+    
+    // Debug: Print top 5 matches with rotation
+    std::vector<std::pair<RecognitionResult, int>> distances;
+    for(const auto& t : templates) {
+        int distance = hamming_distance(packed.data(), t.bits.data());
+        RecognitionResult result(t.letter, t.rotation, distance);
+        distances.push_back({result, distance});
+    }
+    std::sort(distances.begin(), distances.end(), 
+              [](const auto& a, const auto& b) { return a.second < b.second; });
+    
+    std::cout << "Top 5 matches (with rotation):" << std::endl;
+    for (int i = 0; i < std::min(5, (int)distances.size()); i++) {
+        const auto& result = distances[i].first;
+        std::cout << "  " << result.letter << " (rotation: " << result.rotation << "°): " << result.confidence << std::endl;
+    }
+    
+    // If confidence is too low, mark as unknown
+    if (best_result.confidence > SAFE_THRESHOLD) {
+        best_result.letter = '?';
+        best_result.rotation = 0;
+    }
+    
+    return best_result;
+}
+
 void calibrate_threshold(const std::string& validation_dir) {
     // Simple threshold calibration based on validation data
     // This could be enhanced with machine learning
-    SAFE_THRESHOLD = 70;  // Updated default value
+    SAFE_THRESHOLD = 200;  // Updated for 64x64 templates
 }
 
 void debug_save_image(const cv::Mat& img, const std::string& filename) {
