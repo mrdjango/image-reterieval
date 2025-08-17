@@ -4,7 +4,7 @@ import os
 
 
 # Find all files matching the pattern ?_0_?.jpg
-for filepath in glob.glob('dataset/*_0_*.jpg'):
+for filepath in glob.glob('dataset/*_0_*.png'):
     # Split the filename into prefix and suffix using '_0_' as the separator
     parts = filepath.split('_0_', 1)
     if len(parts) != 2:
