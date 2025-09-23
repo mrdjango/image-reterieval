@@ -1,0 +1,108 @@
+_________________________________________
+"(1, 1)"
+Best match: T (rotation: 0Â°)
+Top 5 matches (with rotation):
+  T (rotation: 0Â°): 241
+  2 (rotation: 0Â°): 424
+  c (rotation: 0Â°): 472
+  4 (rotation: 0Â°): 494
+  A (rotation: 0Â°): 537
+_________________________________________
+"(1, 2)"
+Best match: T (rotation: 0Â°)
+Top 5 matches (with rotation):
+  T (rotation: 0Â°): 671
+  2 (rotation: 0Â°): 684
+  A (rotation: 0Â°): 729
+  4 (rotation: 0Â°): 770
+  c (rotation: 0Â°): 804
+_________________________________________
+"(1, 3)"
+Best match: c (rotation: 0Â°)
+Top 5 matches (with rotation):
+  c (rotation: 0Â°): 194
+  0 (rotation: 0Â°): 293
+  2 (rotation: 0Â°): 372
+  T (rotation: 0Â°): 403
+  A (rotation: 0Â°): 419
+_________________________________________
+"(2, 1)"
+Best match: 0 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  0 (rotation: 0Â°): 296
+  4 (rotation: 0Â°): 411
+  A (rotation: 0Â°): 416
+  c (rotation: 0Â°): 421
+  2 (rotation: 0Â°): 425
+_________________________________________
+"(2, 2)"
+Best match: 2 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  2 (rotation: 0Â°): 698
+  T (rotation: 0Â°): 709
+  A (rotation: 0Â°): 745
+  4 (rotation: 0Â°): 782
+  c (rotation: 0Â°): 832
+_________________________________________
+"(2, 3)"
+Best match: 4 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  4 (rotation: 0Â°): 467
+  A (rotation: 0Â°): 500
+  0 (rotation: 0Â°): 578
+  2 (rotation: 0Â°): 583
+  T (rotation: 0Â°): 604
+_________________________________________
+"(3, 1)"
+Best match: 0 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  0 (rotation: 0Â°): 286
+  c (rotation: 0Â°): 399
+  4 (rotation: 0Â°): 431
+  A (rotation: 0Â°): 432
+  2 (rotation: 0Â°): 449
+_________________________________________
+"(3, 2)"
+Best match: 2 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  2 (rotation: 0Â°): 638
+  T (rotation: 0Â°): 685
+  4 (rotation: 0Â°): 704
+  A (rotation: 0Â°): 711
+  0 (rotation: 0Â°): 791
+_________________________________________
+"(3, 3)"
+Best match: 4 (rotation: 0Â°)
+Top 5 matches (with rotation):
+  4 (rotation: 0Â°): 291
+  A (rotation: 0Â°): 360
+  0 (rotation: 0Â°): 432
+  2 (rotation: 0Â°): 453
+  T (rotation: 0Â°): 462
+_________________________________________
+"(4, 1)"
+Best match: 0 (rotation: 180Â°)
+Top 5 matches (with rotation):
+  0 (rotation: 180Â°): 324
+  c (rotation: 180Â°): 339
+  A (rotation: 180Â°): 417
+  2 (rotation: 180Â°): 429
+  4 (rotation: 180Â°): 430
+_________________________________________
+"(4, 2)"
+Best match: T (rotation: 270Â°)
+Top 5 matches (with rotation):
+  T (rotation: 270Â°): 662
+  2 (rotation: 270Â°): 683
+  A (rotation: 270Â°): 726
+  4 (rotation: 270Â°): 761
+  c (rotation: 270Â°): 820
+_________________________________________
+"(4, 3)"
+Best match: c (rotation: 90Â°)
+Top 5 matches (with rotation):
+  c (rotation: 90Â°): 214
+  0 (rotation: 90Â°): 331
+  2 (rotation: 90Â°): 397
+  4 (rotation: 90Â°): 449
+  A (rotation: 90Â°): 465
