@@ -9,13 +9,27 @@ import os
 import subprocess
 import sys
 
-seq_num = 6
-# Configuration - Modify these paths as needed
-C_SCRIPT_PATH = "/home/hossein/CharRecognition/image-reterieval/src/build_cpu/recognize"           # Path to the C++ recognize executable
-INPUT_IMAGE_DIR = f"/home/hossein/Downloads/grid/{seq_num}"         # Directory containing input images
-OUTPUT_RESULTS_DIR = f"/home/hossein/CharRecognition/image-reterieval/test_results/{seq_num}"          # Directory to save output text files
+import string
+from pprint import pprint
+eval_list = []
 
-def run_recognize_script(image_path, output_path, script_path):
+numbers = "0123456789"
+uppercase = string.ascii_uppercase
+lowercase = string.ascii_lowercase
+all_characters = [numbers, uppercase , lowercase]
+
+def get_directions(entities, direction):
+    for i in entities:
+        en_direction = (i, direction)
+        eval_list.append(en_direction)
+
+for chars in all_characters:
+        for direction in range(3, -1, -1):
+            direction = direction * 90
+            get_directions(chars, direction)
+
+
+def run_recognize_script(image_path, output_path, script_path, known_letter):
     """
     Run the C++ recognize script on a given image and save output to file.
     
@@ -30,7 +44,7 @@ def run_recognize_script(image_path, output_path, script_path):
     try:
         # Run the recognize script
         result = subprocess.run(
-            [script_path, image_path],
+            [script_path, image_path, known_letter],
             capture_output=True,
             text=True,
             check=True
@@ -91,70 +105,81 @@ def main():
     """
     Main function to process all coordinate images.
     """
-    # Check if recognize script exists
-    if not os.path.exists(C_SCRIPT_PATH):
-        print(f"Error: {C_SCRIPT_PATH} script not found!")
-        print("Please make sure the C++ recognize executable is compiled and available.")
-        print("Or update the C_SCRIPT_PATH variable at the top of this script.")
-        sys.exit(1)
-    
-    # Use configuration variables or command line arguments
-    image_directory = INPUT_IMAGE_DIR
-    output_directory = OUTPUT_RESULTS_DIR
-    script_path = C_SCRIPT_PATH
-    
-    # Allow command line arguments to override defaults
-    if len(sys.argv) > 1:
-        script_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        image_directory = sys.argv[2]
-    if len(sys.argv) > 3:
-        output_directory = sys.argv[3]
-    
-    print(f"Using C++ script: {script_path}")
-    print(f"Looking for coordinate images in: {image_directory}")
-    print(f"Output directory: {output_directory}")
-    
-    # Create output directory if it doesn't exist
-    os.makedirs(output_directory, exist_ok=True)
-    
-    # Find all coordinate images
-    coordinate_images = find_coordinate_images(image_directory)
-    
-    if not coordinate_images:
-        print(f"No coordinate pattern images found in {image_directory}")
-        print("Expected pattern: (x,y).png (e.g., (1,1).png, (7,6).png)")
-        return
-    
-    print(f"Found {len(coordinate_images)} coordinate images to process:")
-    for img in coordinate_images:
-        print(f"  - {img}")
-    
-    # Process each image
-    successful = 0
-    failed = 0
-    
-    for image_path in coordinate_images:
-        # Generate output filename
-        image_name = os.path.basename(image_path)
-        output_name = image_name.replace('.png', '.txt')
-        output_path = os.path.join(output_directory, output_name)
+    page_index_grid = 0
+    for seq_num in range(1, 7):
+        # Configuration - Modify these paths as needed
+        C_SCRIPT_PATH = "/home/hossein/CharRecognition/image-reterieval/src/build_cpu/recognize_enhanced"           # Path to the C++ recognize executable
+        INPUT_IMAGE_DIR = f"/home/hossein/Downloads/grid/{seq_num}"         # Directory containing input images
+        OUTPUT_RESULTS_DIR = f"/home/hossein/CharRecognition/image-reterieval/test_results_new/{seq_num}"          # Directory to save output text files
+
+        # Check if recognize script exists
+        if not os.path.exists(C_SCRIPT_PATH):
+            print(f"Error: {C_SCRIPT_PATH} script not found!")
+            print("Please make sure the C++ recognize executable is compiled and available.")
+            print("Or update the C_SCRIPT_PATH variable at the top of this script.")
+            sys.exit(1)
         
-        # Run recognition
-        if run_recognize_script(image_path, output_path, script_path):
-            successful += 1
-        else:
-            failed += 1
-    
-    # Summary
-    print("\n=== Processing Complete ===")
-    print(f"Successfully processed: {successful}")
-    print(f"Failed: {failed}")
-    print(f"Total: {successful + failed}")
-    
-    if failed > 0:
-        print("\nSome images failed to process. Check the error messages above.")
-        sys.exit(1)
+        # Use configuration variables or command line arguments
+        image_directory = INPUT_IMAGE_DIR
+        output_directory = OUTPUT_RESULTS_DIR
+        script_path = C_SCRIPT_PATH
+        
+        # Allow command line arguments to override defaults
+        if len(sys.argv) > 1:
+            script_path = sys.argv[1]
+        if len(sys.argv) > 2:
+            image_directory = sys.argv[2]
+        if len(sys.argv) > 3:
+            output_directory = sys.argv[3]
+        
+        print(f"Using C++ script: {script_path}")
+        print(f"Looking for coordinate images in: {image_directory}")
+        print(f"Output directory: {output_directory}")
+        
+        # Create output directory if it doesn't exist
+        os.makedirs(output_directory, exist_ok=True)
+        
+        # Find all coordinate images
+        coordinate_images = find_coordinate_images(image_directory)
+        
+        if not coordinate_images:
+            print(f"No coordinate pattern images found in {image_directory}")
+            print("Expected pattern: (x,y).png (e.g., (1,1).png, (7,6).png)")
+            return
+        
+        print(f"Found {len(coordinate_images)} coordinate images to process:")
+        for img in coordinate_images:
+            print(f"  - {img}")
+        
+        # Process each image
+        successful = 0
+        failed = 0
+        
+        for image_path in coordinate_images:
+            # Generate output filename
+            image_name = os.path.basename(image_path)
+            output_name = image_name.replace('.png', '.txt')
+            output_path = os.path.join(output_directory, output_name)
+            
+            get_letter = eval_list[page_index_grid][0]
+            page_index_grid += 1
+            print(f"Processing image {image_name} with expected letter '{get_letter}'")
+            # Run recognition
+            if run_recognize_script(image_path, output_path, script_path, get_letter):
+                successful += 1
+            else:
+                failed += 1
+            
+        
+        # Summary
+        print("\n=== Processing Complete ===")
+        print(f"Successfully processed: {successful}")
+        print(f"Failed: {failed}")
+        print(f"Total: {successful + failed}")
+        
+        if failed > 0:
+            print("\nSome images failed to process. Check the error messages above.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

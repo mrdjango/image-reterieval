@@ -3,7 +3,7 @@ from pprint import pprint
 from directions import eval_list
 
 path_list = []
-input_dir = "/home/hossein/CharRecognition/image-reterieval/test_results"
+input_dir = "/home/hossein/CharRecognition/image-reterieval/test_results_new"
 
 for fol in range(1, 7):
     for row in range(1, 8):

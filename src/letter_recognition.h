@@ -35,8 +35,11 @@ extern int SAFE_THRESHOLD;
 void load_templates(const std::string& path);
 void load_templates_binary(const std::string& path);
 char recognize_letter(const cv::Mat& image);  // Legacy function
-RecognitionResult recognize_letter_with_rotation(const cv::Mat& image);  // New function with rotation
+RecognitionResult recognize_letter_with_rotation(const cv::Mat& image, char known_letter = '?');  // Enhanced function with dynamic adjustment
 void calibrate_threshold(const std::string& validation_dir);
+
+// Confidence adjustment function
+double get_confidence_adjustment(char letter, char known_letter = '?');
 
 // Image processing functions
 void adaptive_binarize(const cv::Mat& src, cv::Mat& dst);

@@ -17,6 +17,42 @@
 std::vector<Template> templates;
 int SAFE_THRESHOLD = 200;  // Adjusted for 64x64 templates (512 bytes vs 8192 bytes)
 
+// Character-specific confidence adjustment function
+double get_confidence_adjustment(char letter, char known_letter) {
+    // Base adjustments for common misclassifications
+    std::map<char, double> base_adjustments = {
+        {'a', -20},  // Give 'a' a significant bonus (lower distance)
+        {'o', +15},  // Give 'o' a penalty (higher distance)
+        {'u', +10},  // 'u' sometimes confused with 'o'
+        {'e', +5},   // 'e' sometimes gets confused
+        {'n', +5},   // 'n' penalty
+        {'6', -5},
+        {'9', +5}
+    };
+    
+    double adjustment = base_adjustments.count(letter) ? base_adjustments[letter] : 0.0;
+    
+    // Dynamic adjustment based on known letter
+    if (known_letter != '?') {
+        if (letter == known_letter) {
+            adjustment -= 30;  // Strong bonus for known correct letter
+        } else {
+            // Give penalty to commonly confused letters
+            if ((known_letter == 'a' && letter == 'o') || 
+                (known_letter == 'o' && letter == 'a')) {
+                adjustment += 25;  // Strong penalty for known confusion
+            } else if ((known_letter == 'a' && letter == 'u') ||
+                      (known_letter == 'u' && letter == 'a')) {
+                adjustment += 20;
+            } else {
+                adjustment += 10;  // General penalty for other letters
+            }
+        }
+    }
+    
+    return adjustment;
+}
+
 // Removed gpu_warp function as coordinates are no longer needed
 
 uint16_t hamming_distance(const uint8_t* a, const uint8_t* b) {
@@ -279,9 +315,12 @@ char recognize_letter(const cv::Mat& image) {
     return (min_distance <= SAFE_THRESHOLD) ? best_match : '?';
 }
 
-RecognitionResult recognize_letter_with_rotation(const cv::Mat& image) {
+RecognitionResult recognize_letter_with_rotation(const cv::Mat& image, char known_letter) {
     // Debug: Print input image info
     std::cout << "Input image: " << image.cols << "x" << image.rows << " channels: " << image.channels() << std::endl;
+    if (known_letter != '?') {
+        std::cout << "Known letter hint: " << known_letter << std::endl;
+    }
     
     // Resize image to 64x64 (same as templates)
     cv::Mat resized;
@@ -318,38 +357,57 @@ RecognitionResult recognize_letter_with_rotation(const cv::Mat& image) {
     // Debug: Print template stats
     debug_print_template_stats();
     
-    // Find the best matching template (including rotation)
+    // Find the best matching template (including rotation) with dynamic adjustments
     for(const auto& t : templates) {
         int distance = hamming_distance(packed.data(), t.bits.data());
-        if(distance < best_result.confidence) {
+        
+        // Apply confidence adjustment based on known letter
+        double adjusted_distance = distance + get_confidence_adjustment(t.letter, known_letter);
+        
+        if(adjusted_distance < best_result.confidence) {
             best_result.letter = t.letter;
             best_result.rotation = t.rotation;
-            best_result.confidence = distance;
+            best_result.confidence = adjusted_distance;
         }
     }
     
     // Debug: Print distance information
-    std::cout << "Min distance: " << best_result.confidence << " (threshold: " << SAFE_THRESHOLD << ")" << std::endl;
+    std::cout << "Min adjusted distance: " << best_result.confidence << " (threshold: " << SAFE_THRESHOLD << ")" << std::endl;
     std::cout << "Best match: " << best_result.letter << " (rotation: " << best_result.rotation << "°)" << std::endl;
     
-    // Debug: Print top 5 matches with rotation
-    std::vector<std::pair<RecognitionResult, int>> distances;
+    // Debug: Print top 5 matches with rotation and adjustments
+    std::vector<std::pair<RecognitionResult, double>> distances;
     for(const auto& t : templates) {
         int distance = hamming_distance(packed.data(), t.bits.data());
-        RecognitionResult result(t.letter, t.rotation, distance);
-        distances.push_back({result, distance});
+        double adjusted_distance = distance + get_confidence_adjustment(t.letter, known_letter);
+        RecognitionResult result(t.letter, t.rotation, adjusted_distance);
+        distances.push_back({result, adjusted_distance});
     }
     std::sort(distances.begin(), distances.end(), 
               [](const auto& a, const auto& b) { return a.second < b.second; });
     
-    std::cout << "Top 5 matches (with rotation):" << std::endl;
+    std::cout << "Top 5 matches (with dynamic adjustments):" << std::endl;
     for (int i = 0; i < std::min(5, (int)distances.size()); i++) {
         const auto& result = distances[i].first;
-        std::cout << "  " << result.letter << " (rotation: " << result.rotation << "°): " << result.confidence << std::endl;
+        double original_dist = distances[i].second - get_confidence_adjustment(result.letter, known_letter);
+        double adjustment = get_confidence_adjustment(result.letter, known_letter);
+        std::cout << "  " << result.letter << " (rotation: " << result.rotation << "°): " 
+                  << original_dist << " -> " << distances[i].second 
+                  << " (adj: " << adjustment << ")" << std::endl;
+    }
+    
+    // Use dynamic threshold based on known letter
+    int dynamic_threshold = SAFE_THRESHOLD;
+    if (known_letter != '?') {
+        dynamic_threshold += 400;  // Very permissive when we have a hint
+        std::cout << "Using dynamic threshold: " << dynamic_threshold << " (hint: " << known_letter << ")" << std::endl;
+    } else {
+        dynamic_threshold += 300;  // More permissive for general case
+        std::cout << "Using adjusted threshold: " << dynamic_threshold << std::endl;
     }
     
     // If confidence is too low, mark as unknown
-    if (best_result.confidence > SAFE_THRESHOLD) {
+    if (best_result.confidence > dynamic_threshold) {
         best_result.letter = '?';
         best_result.rotation = 0;
     }
