@@ -101,6 +101,8 @@ def find_coordinate_images(directory):
     
     return sorted(coordinate_images)
 
+current_project_directory = os.path.dirname(os.path.abspath(__file__))
+
 def main():
     """
     Main function to process all coordinate images.
@@ -108,9 +110,9 @@ def main():
     page_index_grid = 0
     for seq_num in range(1, 7):
         # Configuration - Modify these paths as needed
-        C_SCRIPT_PATH = "/home/hossein/CharRecognition/image-reterieval/src/build_cpu/recognize_enhanced"           # Path to the C++ recognize executable
-        INPUT_IMAGE_DIR = f"/home/hossein/Downloads/grid/{seq_num}"         # Directory containing input images
-        OUTPUT_RESULTS_DIR = f"/home/hossein/CharRecognition/image-reterieval/test_results_new/{seq_num}"          # Directory to save output text files
+        C_SCRIPT_PATH = f"{current_project_directory}/src/build_cpu/recognize_enhanced"           # Path to the C++ recognize executable
+        INPUT_IMAGE_DIR = f"{current_project_directory}/grids/{seq_num}"         # Directory containing input images
+        OUTPUT_RESULTS_DIR = f"{current_project_directory}/test_results_new2/{seq_num}"          # Directory to save output text files
 
         # Check if recognize script exists
         if not os.path.exists(C_SCRIPT_PATH):
